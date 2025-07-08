@@ -4,7 +4,7 @@ requests==2.19.0
 # Harte Kryptoschluessel (schlecht)
 SECRET_KEY = "hardcoded-super-secret"
 
-# Unsicherer RNG mit fixiertem Seed
+# ädnerung
 random.seed(1337)
 
 # In-Memory-DB ohne Schutz

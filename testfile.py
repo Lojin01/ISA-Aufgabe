@@ -1,43 +1,77 @@
-"""
-Intentionally unsicheres Demo-Programm.
-Enthaelt mehrere Security-Risiken: SQL-Injection, Command-Injection, unsicheres eval, Klartext-Credentials.
-NICHT in Produktion verwenden.
-"""
+import sqlite3, os, pickle, yaml, random, http.server, socketserver
 
-import sqlite3
-import os
+# Harte Kryptoschluessel (schlecht)
+SECRET_KEY = "hardcoded-super-secret"
 
-# Hardcodierte Zugangsdaten (schlecht)
+# Unsicherer RNG mit fixiertem Seed
+random.seed(1337)
+
+# In-Memory-DB ohne Schutz
 DB = sqlite3.connect(":memory:")
 cur = DB.cursor()
-cur.execute("CREATE TABLE users (username TEXT, password TEXT)")
+cur.execute("CREATE TABLE users (u TEXT, p TEXT)")
 cur.execute("INSERT INTO users VALUES ('admin', 'secret')")
 DB.commit()
 
-while True:
-    inp = input("Eingabe (SQL:<qry> | SH:<cmd> | PY:<expr>): ")
+def unsafe_pickle_load(data):
+    # Beliebige Codeausfuehrung beim Laden
+    return pickle.loads(data)
 
-    if inp.startswith("SQL:"):
-        # Unsichere direkte String-Konkatenation -> SQL-Injection
-        qry = inp[4:]
+def unsafe_yaml_load(text):
+    # YAML Unsafe Load
+    return yaml.load(text, Loader=yaml.Loader)
+
+class InsecureHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Pfad-Traversal
+        path = self.path.lstrip("/")
         try:
-            rows = cur.execute(qry).fetchall()
-            print(rows)
+            with open(path, "rb") as f:
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(f.read())
         except Exception as e:
-            print("DB-Fehler:", e)
+            self.send_error(404, str(e))
 
-    elif inp.startswith("SH:"):
-        # Unsichere Weitergabe an Shell -> Command-Injection
-        cmd = inp[3:]
-        os.system(cmd)
+def main():
+    while True:
+        inp = input("Wahl (SQL:<qry>|SH:<cmd>|PY:<expr>|PK:<hex>|YAML:<txt>|EX:<code>|SRV): ")
 
-    elif inp.startswith("PY:"):
-        # Gefaehrliches eval -> Ausfuehrung beliebigen Python-Codes
-        expr = inp[3:]
-        try:
-            print(eval(expr))
-        except Exception as e:
-            print("Eval-Fehler:", e)
+        if inp.startswith("SQL:"):
+            # SQL-Injection
+            qry = inp[4:]
+            print(cur.execute(qry).fetchall())
 
-    else:
-        print("Unbekanntes Format")
+        elif inp.startswith("SH:"):
+            # Command-Injection
+            os.system(inp[3:])
+
+        elif inp.startswith("PY:"):
+            # Eval-Injection
+            print(eval(inp[3:]))
+
+        elif inp.startswith("PK:"):
+            # Unsichere Pickle-Deserialisierung
+            data = bytes.fromhex(inp[3:])
+            print(unsafe_pickle_load(data))
+
+        elif inp.startswith("YAML:"):
+            # Unsichere YAML-Deserialisierung
+            print(unsafe_yaml_load(inp[5:]))
+
+        elif inp.startswith("EX:"):
+            # exec mit Benutzereingabe
+            exec(inp[3:])
+
+        elif inp == "SRV":
+            # Unsicherer HTTP-Server
+            port = 8080
+            print(f"Starte Server auf Port {port}")
+            with socketserver.TCPServer(("", port), InsecureHandler) as httpd:
+                httpd.serve_forever()
+
+        else:
+            print("Unbekanntes Format")
+
+if __name__ == "__main__":
+    main()

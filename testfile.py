@@ -1,5 +1,6 @@
-import sqlite3, os, pickle, yaml, random, http.server, socketserver
-
+import sqlite3, os, pickle, yaml, random, http.server, socketserver,yaml,request
+PyYAML==5.3
+requests==2.19.0
 # Harte Kryptoschluessel (schlecht)
 SECRET_KEY = "hardcoded-super-secret"
 

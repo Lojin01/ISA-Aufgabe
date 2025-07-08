@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"   # Python, egal ob requirements.txt, pipenv oder poetry
+    directory: "/"            # Pfad zu deiner requirements.txt
+    schedule:
+      interval: "weekly"      # taegliche, monatliche oder manuelle Checks moeglich
+      day: "monday"           # optional
+      time: "09:00"           # optional, 24-h-Format
+      timezone: "Europe/Zurich"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    groups:
+      python-deps:            # eine PR statt viele
+        patterns:
+          - "*"               # alle Abhaengigkeiten
